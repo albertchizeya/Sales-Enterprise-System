@@ -1,0 +1,51 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container animate__animated animate__fadeIn">
+    <h2>Welcome, {{ username }}</h2>
+    <form id="uploadForm">
+      <input type="file" name="file" id="fileInput" accept=".csv,.xls,.xlsx" required>
+      <button type="submit">Upload and Forecast</button>
+    </form>
+    <br>
+    <a href="{{ url_for('logout') }}" class="logout">Logout</a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    document.getElementById("uploadForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const file = document.getElementById("fileInput").files[0];
+      if (!file) return alert("Please select a file");
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+      if (data.error) return Swal.fire("Error", data.error, "error");
+
+      const [ciLow, ciHigh] = data.confidence_interval;
+      const forecastMonth = new Date(data.forecast_month + '-01').toLocaleString('default', { month: 'long', year: 'numeric' });
+
+      Swal.fire({
+        title: `Forecast Month: ${forecastMonth} (${data.forecast_month})`,
+        html: `<strong>Predicted Sales:</strong> $${data.predicted_sales.toLocaleString()}<br>
+               <strong>Confidence Interval (CI):</strong><br>
+               The model estimates sales between <strong>$${ciLow.toLocaleString()}</strong> and <strong>$${ciHigh.toLocaleString()}</strong>.`,
+        icon: 'info'
+      });
+    });
+  </script>
+</body>
+</html>
